@@ -235,13 +235,15 @@ if __name__ == '__main__' and True:
     # This is only approximate since different links in a coalition involve
     # different fractional losses.
     # Note that you lose this fraction for each link in the coalition.
+    num_nodes = max_coalsize_fidelity
+    vol_scaling = 2
     distillation_factor = lambda n: 0.99**(np.log2(n-1))
     link_value = [round(vol_scaling**n / scipy.special.comb(n, 2) \
                         * (distillation_factor(n) ** scipy.special.comb(n, 2)), 2) \
-                  for n in range(2, len(nodes)+1)]
+                  for n in range(2, num_nodes+1)]
     # Value considerations.
     print('Link value:', np.argmax(link_value) + 2)
-    print('\t2 ->', link_value, '->', len(nodes))
+    print('\t2 ->', link_value, '->', num_nodes)
 
     # Note that this calculation assumes that the rate vector y_sol is
     # already fixed -- the question is whether we would want to build
@@ -250,7 +252,7 @@ if __name__ == '__main__' and True:
     # coalitions: we need to generate entanglement (y_sol) between faraway
     # nodes, which costs a lot of short-distance entanglement.
 
-if __name__ == '__main__':
+if __name__ == '__main__' and False:
     Ns = [2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40]
     Qs = [0.9, 0.99]
     VSs = [1.5, 2, 3, 4, 5]
