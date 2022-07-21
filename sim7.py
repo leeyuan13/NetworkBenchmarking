@@ -33,7 +33,7 @@ from sim7_util_grid import gen_params_grid, gen_coalitions_grid, \
 get_edge = lambda i, j: (i, j) if i < j else (j, i)
 
 # Implicit parameter: error of generated entanglement.
-eps_edge = 0.01
+eps_edge = 0
 
 def run_LP_volume(nodes, ecal, p_edges, q_nodes, vol_scaling, \
                   gen_coalitions = gen_all_coalitions):
@@ -72,11 +72,21 @@ def run_LP_volume(nodes, ecal, p_edges, q_nodes, vol_scaling, \
     m_sol = []
     # Number of nodes in coalition.
     coal_len = []
+    # We want to decide the optimal depth for each coalition.
+    # The relevant factor in the objective function is:
+    obj_m = lambda d: d * np.log(vol_scaling) - np.log(d)
     for coal in coalitions:
         if eps_coalition == 0 or len(coal) < 1/np.sqrt(eps_coalition):
-            m_sol.append(len(coal))
+            # Pick the optimal depth of computation.
+            if obj_m(1) <= obj_m(len(coal)):
+                m_sol.append(len(coal))
+            else:
+                m_sol.append(1)
         else:
-            m_sol.append(int(1/eps_coalition/len(coal)))
+            if obj_m(1) <= obj_m(int(1/eps_coalition/len(coal))):
+                m_sol.append(int(1/eps_coalition/len(coal)))
+            else:
+                m_sol.append(1)
         coal_len.append(len(coal))
 
     solver = pywraplp.Solver.CreateSolver('GLOP')
@@ -236,7 +246,7 @@ def save_results(filename, params, results, coalition_rule):
 def gen_filename(network_type, coalition_rule, suffix = '', folder = ''):
     return 'sim7_data/'+folder+'data_'+network_type+'('+coalition_rule+')'+suffix+'.txt'
 
-if __name__ == '__main__' and True:
+if __name__ == '__main__' and False:
     # Limited by state fidelity.
     max_coalsize_fidelity = int(1/np.sqrt(eps_edge))
     print('Fidelity limit:', max_coalsize_fidelity)
@@ -291,12 +301,16 @@ if __name__ == '__main__' and True:
                 elif coalition_rule == 'contiguous':
                     gen_coalitions = gen_coalitions_chain
 
-                params, results, coalition_rule = simulate(*params, \
-                                                           gen_coalitions, \
-                                                           coalition_rule)
-                
-                save_results(gen_filename('chain', coalition_rule, suffix, folder), \
-                             params, results, coalition_rule)
+                try:
+                    params, results, coalition_rule = simulate(*params, \
+                                                               gen_coalitions, \
+                                                               coalition_rule)
+                    
+                    save_results(gen_filename('chain', coalition_rule, suffix, folder), \
+                                 params, results, coalition_rule)
+                except AssertionError as e:
+                    print(e)
+                    continue
 
 ##    half_lengths = [3, 4]
 ##    p_edge = 0.3
