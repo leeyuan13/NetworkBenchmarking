@@ -73,11 +73,10 @@ def run_LP_volume(nodes, ecal, p_edges, q_nodes, vol_scaling, \
     # Number of nodes in coalition.
     coal_len = []
     for coal in coalitions:
-        scale_factor = 0.01 # rough fix to avoid overflow issues
-        if len(coal) < 1/np.sqrt(eps_coalition):
-            m_sol.append(len(coal) + np.log(scale_factor)/np.log(vol_scaling))
+        if eps_coalition == 0 or len(coal) < 1/np.sqrt(eps_coalition):
+            m_sol.append(len(coal))
         else:
-            m_sol.append(int(1/eps_coalition/len(coal)) + np.log(scale_factor)/np.log(vol_scaling))
+            m_sol.append(int(1/eps_coalition/len(coal)))
         coal_len.append(len(coal))
 
     solver = pywraplp.Solver.CreateSolver('GLOP')
@@ -132,7 +131,8 @@ def run_LP_volume(nodes, ecal, p_edges, q_nodes, vol_scaling, \
     # Convert coalition entanglement rate to coalition computation rate, including
     # the depth d and the size of the coalition n.
     e2c = lambda d, n: (n-1)/d if n % 2 == 0 else n/d
-    microvolumes = [(vol_scaling**m_sol[i]) * variables[len(ecal)**2+i] * e2c(m_sol[i], coal_len[i]) for i in range(num_coalitions)]
+    scale_factor = 0.01 # rough fix to avoid overflow issues
+    microvolumes = [(vol_scaling**(m_sol[i]+np.log(scale_factor)/np.log(vol_scaling))) * variables[len(ecal)**2+i] * e2c(m_sol[i], coal_len[i]) for i in range(num_coalitions)]
     solver.Maximize(sum(microvolumes))
     # Solve.
     print('Solving...')
