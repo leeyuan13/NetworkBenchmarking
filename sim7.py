@@ -5,6 +5,7 @@ from ortools.linear_solver import pywraplp
 import scipy.optimize
 import time
 import seaborn as sns
+import os
 
 from sim7_util import get_ecal, gen_all_coalitions
 from sim7_util_chain import gen_params_chain, gen_coalitions_chain
@@ -24,6 +25,10 @@ from sim7_util_grid import gen_params_grid, gen_coalitions_grid, \
 # Variables:
 #   y[s] = rate vector = amount of state s (in ecal) to cash out
 #   w[s1][s2] = amount of state s1 (in ecal) used to produce state s2 (in ecal)
+
+## Data folders:
+# sim7_data - true data
+# sim7_data_old - missing the e2c(d, n) factor
 
 get_edge = lambda i, j: (i, j) if i < j else (j, i)
 
@@ -60,13 +65,20 @@ def run_LP_volume(nodes, ecal, p_edges, q_nodes, vol_scaling, \
     eps_coalition = eps_edge # from parent scope --> error rate for any coalition
     coalitions = gen_coalitions(nodes)  # recall this is a generator
                                         # --> one use only
+    # Depth of computation associated with a coalition.
+    # Note that we should always have depth <= number of memories in a
+    # coalition, so the depth is also the exponent in the volume calculation.
+    # When a coalition is too big, the maximum depth is limited by fidelity.
     m_sol = []
+    # Number of nodes in coalition.
+    coal_len = []
     for coal in coalitions:
-        scale_factor = 1 # rough fix to avoid overflow issues
+        scale_factor = 0.01 # rough fix to avoid overflow issues
         if len(coal) < 1/np.sqrt(eps_coalition):
             m_sol.append(len(coal) + np.log(scale_factor)/np.log(vol_scaling))
         else:
-            m_sol.append(int(1/np.sqrt(eps_coalition)) + np.log(scale_factor)/np.log(vol_scaling))
+            m_sol.append(int(1/eps_coalition/len(coal)) + np.log(scale_factor)/np.log(vol_scaling))
+        coal_len.append(len(coal))
 
     solver = pywraplp.Solver.CreateSolver('GLOP')
     infinity = solver.infinity()
@@ -117,7 +129,10 @@ def run_LP_volume(nodes, ecal, p_edges, q_nodes, vol_scaling, \
         solver.Add(sum(rri) <= yab)
 
     # Objective.
-    microvolumes = [(vol_scaling**m_sol[i]) * variables[len(ecal)**2+i] for i in range(num_coalitions)]
+    # Convert coalition entanglement rate to coalition computation rate, including
+    # the depth d and the size of the coalition n.
+    e2c = lambda d, n: (n-1)/d if n % 2 == 0 else n/d
+    microvolumes = [(vol_scaling**m_sol[i]) * variables[len(ecal)**2+i] * e2c(m_sol[i], coal_len[i]) for i in range(num_coalitions)]
     solver.Maximize(sum(microvolumes))
     # Solve.
     print('Solving...')
@@ -252,8 +267,8 @@ if __name__ == '__main__' and True:
     # coalitions: we need to generate entanglement (y_sol) between faraway
     # nodes, which costs a lot of short-distance entanglement.
 
-if __name__ == '__main__' and False:
-    Ns = [2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40]
+if __name__ == '__main__' and True:
+    Ns = [2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 40]
     Qs = [0.9, 0.99]
     VSs = [1.5, 2, 3, 4, 5]
 
@@ -267,6 +282,8 @@ if __name__ == '__main__' and False:
                 print('('+coalition_rule+')'+suffix)
 
                 folder = 'eps_edge_'+str(eps_edge)+'/'
+                if not os.path.exists('sim7_data/'+folder):
+                    os.makedirs('sim7_data/'+folder)
 
                 params = gen_params_chain(chain_length, q_node, vol_scaling)
                 if coalition_rule == 'all':
