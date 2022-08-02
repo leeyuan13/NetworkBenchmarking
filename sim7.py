@@ -11,6 +11,7 @@ from sim7_util import get_ecal, gen_all_coalitions
 from sim7_util_chain import gen_params_chain, gen_coalitions_chain
 from sim7_util_grid import gen_params_grid, gen_coalitions_grid, \
                              gen_coalitions_grid_sq
+from sim7_util_dumbbell import gen_params_dumbbell, gen_coalitions_dumbbell
 
 # Sets:
 #   nodes = list of nodes
@@ -142,7 +143,7 @@ def run_LP_volume(nodes, ecal, p_edges, q_nodes, vol_scaling, \
     # the depth d and the size of the coalition n.
     e2c = lambda d, n: (n-1)/d if n % 2 == 0 else n/d
     scale_factor = 0.01 # rough fix to avoid overflow issues
-    microvolumes = [(vol_scaling**(m_sol[i]+np.log(scale_factor)/np.log(vol_scaling))) * variables[len(ecal)**2+i] * e2c(m_sol[i], coal_len[i]) for i in range(num_coalitions)]
+    microvolumes = [scale_factor * (vol_scaling**m_sol[i]) * variables[len(ecal)**2+i] * e2c(m_sol[i], coal_len[i]) for i in range(num_coalitions)]
     solver.Maximize(sum(microvolumes))
     # Solve.
     print('Solving...')
@@ -277,7 +278,7 @@ if __name__ == '__main__' and False:
     # coalitions: we need to generate entanglement (y_sol) between faraway
     # nodes, which costs a lot of short-distance entanglement.
 
-if __name__ == '__main__' and True:
+if __name__ == '__main__' and False:
     Ns = [2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 40]
     Qs = [0.9, 0.99]
     VSs = [1.5, 2, 3, 4, 5]
@@ -312,6 +313,45 @@ if __name__ == '__main__' and True:
                     print(e)
                     continue
 
+if __name__ == '__main__' and True:
+    Ns = [2, 3, 4, 5,] # 6, 7]
+    Bs = [4, 6, 8, 10] #[0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0]
+    Qs = [0.9, 0.99]
+    VSs = [1.5, 2, 3, 4, 5]
+
+    for side_num in Ns:
+        for bar_factor in Bs:
+            for q_node in Qs:
+                for vol_scaling in VSs:
+                    coalition_rule = 'contiguous'
+                    suffix = '_N_'+str(side_num) + \
+                             '_B_'+str(bar_factor) + \
+                             '_Q_'+str(q_node) + \
+                             '_VS_'+str(vol_scaling)
+                    print('('+coalition_rule+')'+suffix)
+
+                    folder = 'eps_edge_'+str(eps_edge)+'/'
+                    if not os.path.exists('sim7_data/'+folder):
+                        os.makedirs('sim7_data/'+folder)
+
+                    params = gen_params_dumbbell(side_num, side_num, bar_factor, q_node, vol_scaling)
+                    if coalition_rule == 'all':
+                        gen_coalitions = gen_all_coalitions
+                    elif coalition_rule == 'contiguous':
+                        gen_coalitions = gen_coalitions_dumbbell
+
+                    try:
+                        params, results, coalition_rule = simulate(*params, \
+                                                                   gen_coalitions, \
+                                                                   coalition_rule)
+                        
+                        save_results(gen_filename('dumbbell', coalition_rule, suffix, folder), \
+                                     params, results, coalition_rule)
+                    except AssertionError as e:
+                        print(e)
+                        continue
+                
+##if __name__ == '__main__' and False:
 ##    half_lengths = [3, 4]
 ##    p_edge = 0.3
 ##    Qs = [0.9, 0.99]
