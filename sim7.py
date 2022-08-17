@@ -34,7 +34,7 @@ from sim7_util_dumbbell import gen_params_dumbbell, gen_coalitions_dumbbell
 get_edge = lambda i, j: (i, j) if i < j else (j, i)
 
 # Implicit parameter: error of generated entanglement.
-eps_edge = 0
+eps_edge = 0.01
 
 def run_LP_volume(nodes, ecal, p_edges, q_nodes, vol_scaling, \
                   gen_coalitions = gen_all_coalitions):
@@ -314,8 +314,8 @@ if __name__ == '__main__' and False:
                     continue
 
 if __name__ == '__main__' and True:
-    Ns = [2, 3, 4, 5,] # 6, 7]
-    Bs = [4, 6, 8, 10] #[0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0]
+    Ns = [9, 11, 13] # [2, 3, 4, 5, 6, 7]
+    Bs = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 4.0, 6.0, 8.0, 10.0]
     Qs = [0.9, 0.99]
     VSs = [1.5, 2, 3, 4, 5]
 

@@ -23,9 +23,14 @@ def gen_params_dumbbell(num_left, num_right, bar_factor, q_node, vol_scaling):
     nodes = [0, 1] + [2*i for i in range(1, num_left+1)] + [2*i+1 for i in range(1, num_right+1)]
     nodes.sort()
     ecal = get_ecal(nodes)
-    p_edges = {(0, 2*i): 0.3 for i in range(1, num_left+1)} | \
-              {(1, 2*i+1): 0.3 for i in range(1, num_right+1)} | \
-              {(0, 1): 0.3 * bar_factor}
+    # For Python 3.9 and above.
+    # p_edges = {(0, 2*i): 0.3 for i in range(1, num_left+1)} | \
+    #           {(1, 2*i+1): 0.3 for i in range(1, num_right+1)} | \
+    #           {(0, 1): 0.3 * bar_factor}
+    # For backward compatibility.
+    p_edges = {(0, 2*i): 0.3 for i in range(1, num_left+1)}
+    p_edges.update({(1, 2*i+1): 0.3 for i in range(1, num_right+1)})
+    p_edges.update({(0, 1): 0.3 * bar_factor})
     q_nodes = {node: q_node for node in nodes}
     return nodes, ecal, p_edges, q_nodes, vol_scaling
 
